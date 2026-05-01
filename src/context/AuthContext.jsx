@@ -1,27 +1,14 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('user');
-    return stored ? JSON.parse(stored) : null;
-  });
-  const [token, setToken] = useState(() => localStorage.getItem('token') || null);
+  // Hardcode a Guest user instead of checking localStorage
+  const [user] = useState({ id: 'guest-user-123', username: 'Guest', email: 'guest@ai-planner.com' });
+  const [token] = useState('guest-token'); // Dummy token
 
-  const login = (userData, jwt) => {
-    setUser(userData);
-    setToken(jwt);
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('token', jwt);
-  };
-
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-  };
+  const login = () => {}; // No-op
+  const logout = () => {}; // No-op
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout }}>

@@ -9,10 +9,8 @@ const NAV = [
 ];
 
 export default function Sidebar() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
     <aside style={{
@@ -70,9 +68,6 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
-        <button onClick={handleLogout} className="btn btn-secondary btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
-          🚪 Logout
-        </button>
       </div>
     </aside>
   );
