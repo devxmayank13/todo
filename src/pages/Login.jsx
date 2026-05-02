@@ -15,14 +15,30 @@ export default function Login() {
   const submit = async (e) => {
     e.preventDefault();
     setError(''); setLoading(true);
+
+    // ── ADMIN BYPASS (purely client-side, no backend needed) ──
+    if (
+      (form.email === 'admin' || form.email === 'admin@test.com') &&
+      form.password === 'mayank123'
+    ) {
+      const fakeToken = 'admin-bypass-token-for-testing';
+      const fakeUser  = { id: 'admin-dummy-id', username: 'admin', email: 'admin@test.com' };
+      login(fakeToken, fakeUser);
+      navigate('/dashboard');
+      setLoading(false);
+      return;
+    }
+    // ─────────────────────────────────────────────────────────
+
     try {
       const { data } = await api.post('/auth/login', form);
-      login(data.user, data.token);
+      login(data.token, data.user);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     } finally { setLoading(false); }
   };
+
 
   return (
     <div className="auth-page">
