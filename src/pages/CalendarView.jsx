@@ -14,7 +14,7 @@ export default function CalendarView() {
   // map of date strings to task count
   const [taskMap, setTaskMap] = useState({});
 
-  const BLANK_FORM = { title: '', description: '', date: '', timeSlot: '', priority: 'Medium', category: 'Personal' };
+  const BLANK_FORM = { title: '', description: '', date: '', timeSlot: '', priority: 'Medium', category: 'Personal', tags: '' };
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(BLANK_FORM);
   const [saving, setSaving] = useState(false);
@@ -57,7 +57,11 @@ export default function CalendarView() {
   };
 
   const handleEdit = (task) => {
-    setForm({ ...task, date: new Date(task.date).toISOString().split('T')[0] });
+    setForm({ 
+      ...task, 
+      date: new Date(task.date).toISOString().split('T')[0],
+      tags: task.tags ? task.tags.join(', ') : ''
+    });
     setShowModal(true);
   };
 
@@ -65,7 +69,8 @@ export default function CalendarView() {
   const handleSave = async (e) => {
     e.preventDefault(); setSaving(true);
     try {
-      await api.put(`/todos/${form._id}`, form);
+      const payload = { ...form, tags: form.tags.split(',').map(tag => tag.trim()).filter(Boolean) };
+      await api.put(`/todos/${payload._id}`, payload);
       fetchDayTasks(selectedDate);
       fetchMonthTasks();
       setShowModal(false); setForm(BLANK_FORM);
@@ -145,7 +150,14 @@ export default function CalendarView() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {dayTodos.map(t => (
-                <TaskCard key={t._id} task={t} onUpdate={handleUpdate} onDelete={handleDelete} onEdit={handleEdit} />
+                <TaskCard 
+                  key={t._id} 
+                  task={t} 
+                  onUpdate={handleUpdate} 
+                  onDelete={handleDelete} 
+                  onEdit={handleEdit} 
+                  refreshData={() => fetchDayTasks(selectedDate)}
+                />
               ))}
             </div>
           )}
@@ -192,6 +204,10 @@ export default function CalendarView() {
                     <option>Study</option><option>Work</option><option>Personal</option><option>Health</option><option>Other</option>
                   </select>
                 </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tags (comma separated)</label>
+                <input className="form-input" value={form.tags} onChange={set('tags')} placeholder="e.g. urgent, frontend, review" />
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>

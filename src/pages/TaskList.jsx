@@ -21,7 +21,14 @@ export default function TaskList() {
   const [saving, setSaving]     = useState(false);
 
   const openAddModal = () => { setForm(BLANK); setShowModal(true); };
-  const handleEdit = (task) => { setForm({ ...task, date: new Date(task.date).toISOString().split('T')[0] }); setShowModal(true); };
+  const handleEdit = (task) => { 
+    setForm({ 
+      ...task, 
+      date: new Date(task.date).toISOString().split('T')[0],
+      tags: task.tags ? task.tags.join(', ') : ''
+    }); 
+    setShowModal(true); 
+  };
 
   const fetchTodos = useCallback(async () => {
     setLoading(true);
@@ -51,10 +58,11 @@ export default function TaskList() {
   const handleSave = async (e) => {
     e.preventDefault(); setSaving(true);
     try {
-      if (form._id) {
-        await api.put(`/todos/${form._id}`, form);
+      const payload = { ...form, tags: form.tags.split(',').map(tag => tag.trim()).filter(Boolean) };
+      if (payload._id) {
+        await api.put(`/todos/${payload._id}`, payload);
       } else {
-        await api.post('/todos', form);
+        await api.post('/todos', payload);
       }
       fetchTodos();
       setShowModal(false); setForm(BLANK);
@@ -115,7 +123,7 @@ export default function TaskList() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map(t => (
-            <TaskCard key={t._id} task={t} onUpdate={handleUpdate} onDelete={handleDelete} onEdit={handleEdit} />
+            <TaskCard key={t._id} task={t} onUpdate={handleUpdate} onDelete={handleDelete} onEdit={handleEdit} refreshData={fetchTodos} />
           ))}
         </div>
       )}
@@ -160,6 +168,10 @@ export default function TaskList() {
                     <option>Study</option><option>Work</option><option>Personal</option><option>Health</option><option>Other</option>
                   </select>
                 </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tags (comma separated)</label>
+                <input className="form-input" value={form.tags} onChange={set('tags')} placeholder="e.g. urgent, frontend, review" />
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>

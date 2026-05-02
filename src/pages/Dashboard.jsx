@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import confetti from 'canvas-confetti';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import TaskCard from '../components/TaskCard';
 
-const BLANK_FORM = { title: '', description: '', date: new Date().toISOString().split('T')[0], timeSlot: '', priority: 'Medium', category: 'Personal' };
+const BLANK_FORM = { title: '', description: '', date: new Date().toISOString().split('T')[0], timeSlot: '', priority: 'Medium', category: 'Personal', tags: '' };
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -14,9 +16,18 @@ export default function Dashboard() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm]     = useState(BLANK_FORM);
   const [saving, setSaving] = useState(false);
+  
+  const prevProgressRef = useRef(0);
 
   const openAddModal = () => { setForm(BLANK_FORM); setShowModal(true); };
-  const handleEdit = (task) => { setForm({ ...task, date: new Date(task.date).toISOString().split('T')[0] }); setShowModal(true); };
+  const handleEdit = (task) => { 
+    setForm({ 
+      ...task, 
+      date: new Date(task.date).toISOString().split('T')[0],
+      tags: task.tags ? task.tags.join(', ') : ''
+    }); 
+    setShowModal(true); 
+  };
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -28,7 +39,14 @@ export default function Dashboard() {
         api.get(`/todos?date=${today}`),
       ]);
       setStats(sRes.data);
-      setTodos(tRes.data);
+      setTodos(tRes.data.sort((a,b) => (a.order || 0) - (b.order || 0)));
+      
+      // Confetti Logic
+      if (sRes.data.todayProgress === 100 && prevProgressRef.current < 100) {
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+      }
+      prevProgressRef.current = sRes.data.todayProgress;
+
     } catch { /* silent */ }
     finally { setLoading(false); }
   }, [today]);
@@ -46,14 +64,35 @@ export default function Dashboard() {
   const handleSave = async (e) => {
     e.preventDefault(); setSaving(true);
     try {
-      if (form._id) {
-        await api.put(`/todos/${form._id}`, form);
+      const payload = { ...form, tags: form.tags.split(',').map(tag => tag.trim()).filter(Boolean) };
+      if (payload._id) {
+        await api.put(`/todos/${payload._id}`, payload);
       } else {
-        await api.post('/todos', form);
+        await api.post('/todos', payload);
       }
       fetchData();
       setShowModal(false); setForm(BLANK_FORM);
     } finally { setSaving(false); }
+  };
+
+  const onDragEnd = async (result) => {
+    if (!result.destination) return;
+    const items = Array.from(todos);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Optimistic update
+    const updatedItems = items.map((item, index) => ({ ...item, order: index }));
+    setTodos(updatedItems);
+
+    try {
+      await api.put('/todos/reorder', { 
+        items: updatedItems.map(item => ({ id: item._id, order: item.order })) 
+      });
+    } catch (err) {
+      console.error('Failed to reorder', err);
+      fetchData(); // revert on failure
+    }
   };
 
   const hour = new Date().getHours();
@@ -68,12 +107,12 @@ export default function Dashboard() {
       </div>
 
       {/* Stat Cards */}
-      {loading ? (
+      {loading && !stats ? (
         <div className="loader-wrap"><div className="spinner" /></div>
       ) : stats && (
         <div className="stats-grid">
           <div className="stat-card purple">
-            <div className="stat-icon" style={{ background: 'rgba(139,92,246,0.15)' }}>📋</div>
+            <div className="stat-icon" style={{ background: 'rgba(147, 51, 234, 0.15)' }}>📋</div>
             <div className="stat-value">{stats.todayTotal}</div>
             <div className="stat-label">Today's Tasks</div>
           </div>
@@ -97,41 +136,69 @@ export default function Dashboard() {
 
       {/* Today's Progress */}
       {stats && (
-        <div className="card" style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, alignItems: 'center' }}>
-            <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Today's Progress</span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--accent-light)', fontWeight: 700 }}>{stats.todayProgress}%</span>
+        <div className="card" style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, alignItems: 'center' }}>
+            <span style={{ fontWeight: 800, fontSize: '1rem' }}>Today's Progress</span>
+            <span style={{ fontSize: '0.9rem', color: 'var(--accent-light)', fontWeight: 800 }}>{stats.todayProgress}%</span>
           </div>
           <div className="progress-bar-wrap">
             <div className="progress-bar-fill" style={{ width: `${stats.todayProgress}%` }} />
           </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 8 }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 10, fontWeight: 500 }}>
             {stats.todayCompleted} of {stats.todayTotal} tasks completed
           </div>
         </div>
       )}
 
       {/* Today's Tasks */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Today's Tasks</h2>
-        <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Today's Tasks</h2>
+        <div style={{ display: 'flex', gap: 12 }}>
           <button id="add-task-btn" className="btn btn-primary btn-sm" onClick={openAddModal}>+ Add Task</button>
           <Link to="/planner" className="btn btn-secondary btn-sm">🤖 AI Plan</Link>
         </div>
       </div>
 
-      {loading ? <div className="loader-wrap"><div className="spinner" /></div>
+      {loading && !todos.length ? <div className="loader-wrap"><div className="spinner" /></div>
         : todos.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📭</div>
             <p>No tasks for today. Add one or generate an AI plan!</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {todos.map(t => (
-              <TaskCard key={t._id} task={t} onUpdate={updated => { handleUpdate(updated); fetchData(); }} onDelete={handleDelete} onEdit={handleEdit} />
-            ))}
-          </div>
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="todos">
+              {(provided) => (
+                <div {...provided.droppableProps} ref={provided.innerRef} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {todos.map((t, index) => (
+                    <Draggable key={t._id} draggableId={t._id} index={index}>
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          style={{
+                            ...provided.draggableProps.style,
+                            opacity: snapshot.isDragging ? 0.8 : 1,
+                            transform: snapshot.isDragging ? provided.draggableProps.style.transform : 'none'
+                          }}
+                        >
+                          <TaskCard 
+                            task={t} 
+                            onUpdate={updated => { handleUpdate(updated); fetchData(); }} 
+                            onDelete={handleDelete} 
+                            onEdit={handleEdit} 
+                            refreshData={fetchData}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         )
       }
 
@@ -175,6 +242,10 @@ export default function Dashboard() {
                     <option>Study</option><option>Work</option><option>Personal</option><option>Health</option><option>Other</option>
                   </select>
                 </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tags (comma separated)</label>
+                <input className="form-input" value={form.tags} onChange={set('tags')} placeholder="e.g. urgent, frontend, review" />
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>

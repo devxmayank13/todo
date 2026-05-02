@@ -6,6 +6,7 @@ const NAV = [
   { to: '/planner',   icon: '🤖', label: 'AI Planner' },
   { to: '/tasks',     icon: '✅', label: 'Tasks' },
   { to: '/calendar',  icon: '📅', label: 'Calendar' },
+  { to: '/focus',     icon: '🍅', label: 'Focus Mode' },
 ];
 
 export default function Sidebar() {
