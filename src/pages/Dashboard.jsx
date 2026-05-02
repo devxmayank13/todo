@@ -15,6 +15,9 @@ export default function Dashboard() {
   const [form, setForm]     = useState(BLANK_FORM);
   const [saving, setSaving] = useState(false);
 
+  const openAddModal = () => { setForm(BLANK_FORM); setShowModal(true); };
+  const handleEdit = (task) => { setForm({ ...task, date: new Date(task.date).toISOString().split('T')[0] }); setShowModal(true); };
+
   const today = new Date().toISOString().split('T')[0];
 
   const fetchData = useCallback(async () => {
@@ -40,11 +43,14 @@ export default function Dashboard() {
   };
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
-  const handleAdd = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault(); setSaving(true);
     try {
-      const { data } = await api.post('/todos', form);
-      if (form.date === today) setTodos(t => [data, ...t]);
+      if (form._id) {
+        await api.put(`/todos/${form._id}`, form);
+      } else {
+        await api.post('/todos', form);
+      }
       fetchData();
       setShowModal(false); setForm(BLANK_FORM);
     } finally { setSaving(false); }
@@ -109,7 +115,7 @@ export default function Dashboard() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Today's Tasks</h2>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button id="add-task-btn" className="btn btn-primary btn-sm" onClick={() => setShowModal(true)}>+ Add Task</button>
+          <button id="add-task-btn" className="btn btn-primary btn-sm" onClick={openAddModal}>+ Add Task</button>
           <Link to="/planner" className="btn btn-secondary btn-sm">🤖 AI Plan</Link>
         </div>
       </div>
@@ -123,21 +129,21 @@ export default function Dashboard() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {todos.map(t => (
-              <TaskCard key={t._id} task={t} onUpdate={updated => { handleUpdate(updated); fetchData(); }} onDelete={handleDelete} />
+              <TaskCard key={t._id} task={t} onUpdate={updated => { handleUpdate(updated); fetchData(); }} onDelete={handleDelete} onEdit={handleEdit} />
             ))}
           </div>
         )
       }
 
-      {/* Add Task Modal */}
+      {/* Add/Edit Task Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal">
             <div className="modal-header">
-              <h2>Add New Task</h2>
+              <h2>{form._id ? 'Edit Task' : 'Add New Task'}</h2>
               <button onClick={() => setShowModal(false)} className="btn btn-secondary btn-icon">✕</button>
             </div>
-            <form className="modal-form" onSubmit={handleAdd}>
+            <form className="modal-form" onSubmit={handleSave}>
               <div className="form-group">
                 <label className="form-label">Title</label>
                 <input id="task-title" className="form-input" value={form.title} onChange={set('title')} placeholder="Task title" required />

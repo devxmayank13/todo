@@ -14,6 +14,11 @@ export default function CalendarView() {
   // map of date strings to task count
   const [taskMap, setTaskMap] = useState({});
 
+  const BLANK_FORM = { title: '', description: '', date: '', timeSlot: '', priority: 'Medium', category: 'Personal' };
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState(BLANK_FORM);
+  const [saving, setSaving] = useState(false);
+
   // Fetch all tasks for the current month
   const fetchMonthTasks = useCallback(async () => {
     try {
@@ -49,6 +54,22 @@ export default function CalendarView() {
     await api.delete(`/todos/${id}`);
     setDayTodos(d => d.filter(x => x._id !== id));
     fetchMonthTasks();
+  };
+
+  const handleEdit = (task) => {
+    setForm({ ...task, date: new Date(task.date).toISOString().split('T')[0] });
+    setShowModal(true);
+  };
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const handleSave = async (e) => {
+    e.preventDefault(); setSaving(true);
+    try {
+      await api.put(`/todos/${form._id}`, form);
+      fetchDayTasks(selectedDate);
+      fetchMonthTasks();
+      setShowModal(false); setForm(BLANK_FORM);
+    } finally { setSaving(false); }
   };
 
   // Build calendar grid
@@ -124,12 +145,62 @@ export default function CalendarView() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {dayTodos.map(t => (
-                <TaskCard key={t._id} task={t} onUpdate={handleUpdate} onDelete={handleDelete} />
+                <TaskCard key={t._id} task={t} onUpdate={handleUpdate} onDelete={handleDelete} onEdit={handleEdit} />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Edit Task Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+          <div className="modal">
+            <div className="modal-header">
+              <h2>Edit Task</h2>
+              <button onClick={() => setShowModal(false)} className="btn btn-secondary btn-icon">✕</button>
+            </div>
+            <form className="modal-form" onSubmit={handleSave}>
+              <div className="form-group">
+                <label className="form-label">Title</label>
+                <input className="form-input" value={form.title} onChange={set('title')} placeholder="Task title" required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Description</label>
+                <input className="form-input" value={form.description} onChange={set('description')} placeholder="Optional description" />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Date</label>
+                  <input className="form-input" type="date" value={form.date} onChange={set('date')} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Time Slot</label>
+                  <input className="form-input" value={form.timeSlot} onChange={set('timeSlot')} placeholder="e.g. 10:00 - 11:00" />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Priority</label>
+                  <select className="form-input" value={form.priority} onChange={set('priority')}>
+                    <option>High</option><option>Medium</option><option>Low</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Category</label>
+                  <select className="form-input" value={form.category} onChange={set('category')}>
+                    <option>Study</option><option>Work</option><option>Personal</option><option>Health</option><option>Other</option>
+                  </select>
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save Task'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

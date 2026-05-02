@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import api from '../utils/api';
 
-export default function TaskCard({ task, onUpdate, onDelete }) {
+export default function TaskCard({ task, onUpdate, onDelete, onEdit }) {
   const [loading, setLoading] = useState(false);
 
   const toggle = async () => {
@@ -40,6 +40,13 @@ export default function TaskCard({ task, onUpdate, onDelete }) {
       </div>
 
       <div className="task-actions">
+        {onEdit && (
+          <button
+            className="btn btn-secondary btn-icon btn-sm"
+            onClick={() => onEdit(task)}
+            title="Edit task"
+          >✏️</button>
+        )}
         <button
           className="btn btn-danger btn-icon btn-sm"
           onClick={() => onDelete(task._id)}

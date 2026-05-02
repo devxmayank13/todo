@@ -20,6 +20,9 @@ export default function TaskList() {
   const [form, setForm]         = useState(BLANK);
   const [saving, setSaving]     = useState(false);
 
+  const openAddModal = () => { setForm(BLANK); setShowModal(true); };
+  const handleEdit = (task) => { setForm({ ...task, date: new Date(task.date).toISOString().split('T')[0] }); setShowModal(true); };
+
   const fetchTodos = useCallback(async () => {
     setLoading(true);
     try {
@@ -45,11 +48,15 @@ export default function TaskList() {
   const handleDelete = async (id) => { await api.delete(`/todos/${id}`); setTodos(t => t.filter(x => x._id !== id)); };
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
-  const handleAdd = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault(); setSaving(true);
     try {
-      const { data } = await api.post('/todos', form);
-      setTodos(t => [data, ...t]);
+      if (form._id) {
+        await api.put(`/todos/${form._id}`, form);
+      } else {
+        await api.post('/todos', form);
+      }
+      fetchTodos();
       setShowModal(false); setForm(BLANK);
     } finally { setSaving(false); }
   };
@@ -73,7 +80,7 @@ export default function TaskList() {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        <button id="add-task-list-btn" className="btn btn-primary" onClick={() => setShowModal(true)}>+ Add Task</button>
+        <button id="add-task-list-btn" className="btn btn-primary" onClick={openAddModal}>+ Add Task</button>
       </div>
 
       {/* Filters */}
@@ -108,20 +115,20 @@ export default function TaskList() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map(t => (
-            <TaskCard key={t._id} task={t} onUpdate={handleUpdate} onDelete={handleDelete} />
+            <TaskCard key={t._id} task={t} onUpdate={handleUpdate} onDelete={handleDelete} onEdit={handleEdit} />
           ))}
         </div>
       )}
 
-      {/* Add Task Modal */}
+      {/* Add/Edit Task Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal">
             <div className="modal-header">
-              <h2>Add New Task</h2>
+              <h2>{form._id ? 'Edit Task' : 'Add New Task'}</h2>
               <button onClick={() => setShowModal(false)} className="btn btn-secondary btn-icon">✕</button>
             </div>
-            <form className="modal-form" onSubmit={handleAdd}>
+            <form className="modal-form" onSubmit={handleSave}>
               <div className="form-group">
                 <label className="form-label">Title</label>
                 <input id="tl-task-title" className="form-input" value={form.title} onChange={set('title')} placeholder="Task title" required />
