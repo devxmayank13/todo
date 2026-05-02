@@ -1,18 +1,39 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  // Hardcode a Guest user instead of checking localStorage
-  const [user] = useState({ id: 'guest-user-123', username: 'Guest', email: 'guest@ai-planner.com' });
-  const [token] = useState('guest-token'); // Dummy token
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [loading, setLoading] = useState(true);
 
-  const login = () => {}; // No-op
-  const logout = () => {}; // No-op
+  useEffect(() => {
+    // If we have a token but no user, we might want to fetch user details.
+    // For now, we'll assume the user object is stored in localStorage too.
+    const storedUser = localStorage.getItem('user');
+    if (token && storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setLoading(false);
+  }, [token]);
+
+  const login = (newToken, userData) => {
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setToken(newToken);
+    setUser(userData);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setToken(null);
+    setUser(null);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
-      {children}
+    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

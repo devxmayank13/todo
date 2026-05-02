@@ -10,7 +10,13 @@ const NAV = [
 ];
 
 export default function Sidebar() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
 
   return (
@@ -69,6 +75,21 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
+        
+        <button 
+          onClick={handleLogout}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+            background: 'transparent', color: 'var(--text-muted)',
+            border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600,
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent'; }}
+        >
+          <span>🚪</span> Logout
+        </button>
       </div>
     </aside>
   );
