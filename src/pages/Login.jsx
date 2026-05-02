@@ -43,7 +43,7 @@ export default function Login() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">✦ <span>AI</span> Planner</div>
+        <div className="auth-logo">✦ <span>GoalCraft</span> AI</div>
         <p className="auth-subtitle">Sign in to your account to continue</p>
 
         {error && <div className="auth-error">{error}</div>}

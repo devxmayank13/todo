@@ -27,7 +27,7 @@ export default function Signup() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">✦ <span>AI</span> Planner</div>
+        <div className="auth-logo">✦ <span>GoalCraft</span> AI</div>
         <p className="auth-subtitle">Create your free account</p>
 
         {error && <div className="auth-error">{error}</div>}

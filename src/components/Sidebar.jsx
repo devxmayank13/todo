@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 
 const NAV = [
   { to: '/dashboard', icon: '⚡', label: 'Dashboard' },
-  { to: '/planner',   icon: '🤖', label: 'AI Planner' },
+  { to: '/planner',   icon: '🤖', label: 'Goal Planner' },
   { to: '/tasks',     icon: '✅', label: 'Tasks' },
   { to: '/calendar',  icon: '📅', label: 'Calendar' },
   { to: '/focus',     icon: '🍅', label: 'Focus Mode' },
@@ -32,7 +32,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div style={{ padding: '0 8px', marginBottom: '32px' }}>
         <div style={{ fontSize: '1.3rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
-          <span style={{ color: 'var(--accent-light)' }}>AI</span> Planner
+          <span style={{ color: 'var(--accent-light)' }}>GoalCraft</span> AI
         </div>
         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Powered by Gemini</div>
       </div>

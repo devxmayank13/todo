@@ -101,7 +101,7 @@ export default function AIPlanner() {
   return (
     <div>
       <div className="page-header">
-        <h1>🤖 AI Planner</h1>
+        <h1>✦ GoalCraft AI</h1>
         <p>Generate a structured day-by-day plan for any goal using Gemini AI</p>
       </div>
 
